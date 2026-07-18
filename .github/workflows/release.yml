@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Build (release)
+        run: swift build -c release
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p dist
+          cp -R .build/release/mcp-snippetslab dist/
+          cp .build/release/mcp-snippetslab.dSYM dist/ 2>/dev/null || true
+          cp README.md dist/
+          cp opencode.json dist/
+
+      - name: Archive binary
+        run: |
+          cd dist
+          zip -r mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip \
+            mcp-snippetslab README.md opencode.json
+
+      - name: Generate checksum
+        run: |
+          shasum -a 256 dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip \
+            > dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip.sha256
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: mcp-snippetslab ${{ github.ref_name }}
+          body: |
+            Release ${{ github.ref_name }}
+
+            ## What's Changed
+            See [CHANGELOG.md](CHANGELOG.md) for details.
+
+            ## Installation
+            ```bash
+            # Or use the pre-built binary
+            # Add to opencode.json / MCP client config
+            ```
+          files: |
+            dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip
+            dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip.sha256
