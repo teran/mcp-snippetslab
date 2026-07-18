@@ -54,6 +54,8 @@ Clean Architecture / DDD:
 3. SnippetsLab uses custom ObjC classes (SLSnippet) — NSKeyedUnarchiver cannot decode them without the app
 4. `requiresSecureCoding = false` for both reading (fails gracefully) and writing
 5. `FileManager` is non-Sendable — use `nonisolated(unsafe)` with clear comments
+6. **Startup**: `main.swift` must call `await server.waitUntilCompleted()` after `try await server.start(…)` or the process exits immediately. `signal(SIGPIPE, SIG_IGN)` is required at the top of `main.swift` to prevent crashes on broken pipes.
+7. **Tool inputSchema**: Every property in a tool's `inputSchema` MUST be a JSON Schema object with `type` and `description` fields — e.g. `.object(["type": .string("string"), "description": .string("...")])`. Plain `.string("...")` values produce invalid JSON Schema that clients like opencode reject with "failed to get tools".
 
 ## MCP SDK
 

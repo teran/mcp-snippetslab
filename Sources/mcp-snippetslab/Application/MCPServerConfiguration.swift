@@ -7,72 +7,102 @@ let allTools: [Tool] = [
     Tool(
         name: "list_snippets",
         description: "List all snippets with optional folder and tag filters",
-        inputSchema: [
+        inputSchema: .object([
             "type": .string("object"),
             "properties": .object([
-                "folder_uuid": .string("Filter by folder UUID (optional)"),
-                "tag_uuid": .string("Filter by tag UUID (optional)"),
-                "limit": .string("Maximum number of results (default: 50)")
+                "folder_uuid": .object([
+                    "type": .string("string"),
+                    "description": .string("Filter by folder UUID (optional)")
+                ]),
+                "tag_uuid": .object([
+                    "type": .string("string"),
+                    "description": .string("Filter by tag UUID (optional)")
+                ]),
+                "limit": .object([
+                    "type": .string("string"),
+                    "description": .string("Maximum number of results (default: 50)")
+                ])
             ])
-        ]
+        ])
     ),
     Tool(
         name: "get_snippet",
         description: "Get full snippet content by UUID including all fragments",
-        inputSchema: [
+        inputSchema: .object([
             "type": .string("object"),
             "properties": .object([
-                "uuid": .string("The snippet UUID (required)")
+                "uuid": .object([
+                    "type": .string("string"),
+                    "description": .string("The snippet UUID (required)")
+                ])
             ]),
             "required": .array([.string("uuid")])
-        ]
+        ])
     ),
     Tool(
         name: "search_snippets",
         description: "Full-text search across snippet titles and content",
-        inputSchema: [
+        inputSchema: .object([
             "type": .string("object"),
             "properties": .object([
-                "query": .string("Search query (required)")
+                "query": .object([
+                    "type": .string("string"),
+                    "description": .string("Search query (required)")
+                ])
             ]),
             "required": .array([.string("query")])
-        ]
+        ])
     ),
     Tool(
         name: "create_snippet",
         description: "Create a new snippet in the SnippetsLab library",
-        inputSchema: [
+        inputSchema: .object([
             "type": .string("object"),
             "properties": .object([
-                "title": .string("Snippet title (required)"),
-                "content": .string("Snippet content / code (required)"),
-                "language": .string("Programming language (optional)"),
-                "folder_uuid": .string("Folder UUID (optional)"),
+                "title": .object([
+                    "type": .string("string"),
+                    "description": .string("Snippet title (required)")
+                ]),
+                "content": .object([
+                    "type": .string("string"),
+                    "description": .string("Snippet content / code (required)")
+                ]),
+                "language": .object([
+                    "type": .string("string"),
+                    "description": .string("Programming language (optional)")
+                ]),
+                "folder_uuid": .object([
+                    "type": .string("string"),
+                    "description": .string("Folder UUID (optional)")
+                ]),
                 "tag_uuids": .object([
                     "type": .string("array"),
                     "items": .object(["type": .string("string")]),
                     "description": .string("Tag UUIDs (optional)")
                 ]),
-                "note": .string("Optional note for the fragment")
+                "note": .object([
+                    "type": .string("string"),
+                    "description": .string("Optional note for the fragment")
+                ])
             ]),
             "required": .array([.string("title"), .string("content")])
-        ]
+        ])
     ),
     Tool(
         name: "list_folders",
         description: "List all folders in the SnippetsLab library",
-        inputSchema: [
+        inputSchema: .object([
             "type": .string("object"),
             "properties": .object([:])
-        ]
+        ])
     ),
     Tool(
         name: "list_tags",
         description: "List all tags in the SnippetsLab library",
-        inputSchema: [
+        inputSchema: .object([
             "type": .string("object"),
             "properties": .object([:])
-        ]
+        ])
     )
 ]
 

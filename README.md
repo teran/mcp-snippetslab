@@ -55,6 +55,7 @@ Add to your MCP client config:
 
 ```bash
 swift build              # Build debug
+swift build -c release   # Build release (used by MCP clients)
 swift test               # Run tests (48 tests, 5 suites)
 swiftlint --strict       # Lint (0 violations)
 ```

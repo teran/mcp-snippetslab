@@ -4,6 +4,12 @@
 
 An MCP (Model Context Protocol) server that provides LLM agents with read/write access to SnippetsLab code snippet collections on macOS.
 
+## Startup Sequence
+
+The MCP SDK's `Server.start()` returns immediately after setting up the transport and spawning a background message-handling task. The process MUST call `server.waitUntilCompleted()` to keep it alive; otherwise it exits right after `start()` returns.
+
+SIGPIPE is ignored (`signal(SIGPIPE, SIG_IGN)`) to prevent the OS from killing the process when the client closes its read-end of the stdio pipe. The `StdioTransport` handles `EPIPE` write errors gracefully.
+
 ## Data Sources
 
 ### Reading (backup)

@@ -1,5 +1,13 @@
+import Darwin
 import Foundation
 import MCP
+
+// MARK: - Signal Handling
+
+/// Ignore SIGPIPE to prevent the process from crashing when writing
+/// to a broken pipe (e.g., the client disconnects unexpectedly).
+/// The StdioTransport handles EPIPE errors gracefully.
+signal(SIGPIPE, SIG_IGN)
 
 // MARK: - Composite Repository
 
@@ -80,3 +88,6 @@ await MCPServerConfiguration.configure(server: server, repository: repository)
 
 // Start the server
 try await server.start(transport: StdioTransport())
+
+// Keep the process alive until the server shuts down
+await server.waitUntilCompleted()
