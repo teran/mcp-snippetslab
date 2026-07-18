@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mcp-snippetslab": {
+      "command": "${PROJECT_DIR}/.build/release/mcp-snippetslab",
+      "description": "Access SnippetsLab code snippets: search, read, and create"
+    }
+  }
+}
