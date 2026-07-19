@@ -31,16 +31,16 @@
   <a href="https://modelcontextprotocol.io">
     <img src="https://img.shields.io/badge/MCP-2025--03--26-8A2BE2?logo=protocol" alt="MCP">
   </a>
-  <a href="https://snippetslab.app">
+  <a href="https://www.renfei.org/snippets-lab/">
     <img src="https://img.shields.io/badge/SnippetsLab-2.6%2B-007AFF?logo=apple" alt="SnippetsLab">
   </a>
 </p>
 
 # mcp-snippetslab
 
-**MCP server for [SnippetsLab](https://snippetslab.app)** — connects AI assistants to your personal code snippet library via the [Model Context Protocol](https://modelcontextprotocol.io/). Search across hundreds of snippets, browse by folder or tag, read full content with syntax highlighting info, and create new snippets — all from your AI assistant.
+**MCP server for [SnippetsLab](https://www.renfei.org/snippets-lab/)** — connects AI assistants to your personal code snippet library via the [Model Context Protocol](https://modelcontextprotocol.io/). Search across hundreds of snippets, browse by folder or tag, read full content with syntax highlighting info, and create new snippets — all from your AI assistant.
 
-[**SnippetsLab**](https://snippetslab.app) (by Renfei Song) is a full-featured snippet manager and note‑taking app for developers on macOS and iOS. It supports syntax highlighting for 600+ languages, Markdown with Mermaid diagrams and LaTeX, iCloud sync, and automatic backups.
+[**SnippetsLab**](https://www.renfei.org/snippets-lab/) (by Renfei Song) is a full-featured snippet manager and note‑taking app for developers on macOS and iOS. It supports syntax highlighting for 600+ languages, Markdown with Mermaid diagrams and LaTeX, iCloud sync, and automatic backups.
 
 > **Does SnippetsLab have built-in MCP support?** No. SnippetsLab does not expose a Model Context Protocol interface as of version 2.6.4 (February 2026). This server bridges that gap by reading from SnippetsLab's automatic backup files and writing directly to its iCloud library.
 
@@ -137,7 +137,7 @@ See [SPEC.md](SPEC.md) for the full specification.
 
 - macOS 15+ (for Swift 6 language features and Swift Testing framework)
 - Swift 6.0+ (included with Xcode 16+)
-- [SnippetsLab](https://snippetslab.app) with a library at the default iCloud path (for reading backups and writing new snippets)
+- [SnippetsLab](https://www.renfei.org/snippets-lab/) with a library at the default iCloud path (for reading backups and writing new snippets)
 
 ## Quick Start
 
