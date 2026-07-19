@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/teran/mcp-snippetslab/actions/workflows/ci.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/teran/mcp-snippetslab/ci.yml?branch=main&label=CI&logo=github" alt="CI">
+    <img src="https://img.shields.io/github/actions/workflow/status/teran/mcp-snippetslab/ci.yml?branch=master&label=CI&logo=github" alt="CI">
   </a>
   <a href="https://www.swift.org">
     <img src="https://img.shields.io/badge/swift-6.0-F05138?logo=swift" alt="Swift Version">
