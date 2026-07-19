@@ -7,19 +7,20 @@ All prompts, code, commit messages, and documentation are in English unless the 
 
 ```
 Sources/mcp-snippetslab/
-├── main.swift                         — Composition Root
+├── main.swift                                    — Composition Root (wiring only)
 ├── Application/
-│   └── MCPServerConfiguration.swift   — MCP tool/resource handler registration
+│   └── MCPServerConfiguration.swift              — MCP tool/resource handler registration
 ├── Domain/
 │   ├── Entity/
 │   │   ├── Snippet.swift
 │   │   ├── Folder.swift
 │   │   └── Tag.swift
 │   └── Repository/
-│       └── SnippetRepository.swift    — Protocol
+│       └── SnippetRepository.swift               — Protocol
 └── Infrastructure/
-    ├── BackupSnippetRepository.swift   — Read from backup library.json
-    └── NSKeyedArchiverSnippetWriter.swift — Write via NSKeyedArchiver
+    ├── BackupSnippetRepository.swift             — Read from backup library.json
+    ├── NSKeyedArchiverSnippetWriter.swift         — Write via NSKeyedArchiver
+    └── CompositeSnippetRepository.swift           — Validates folder/tag UUIDs + delegates to reader/writer
 ```
 
 ## Architecture
@@ -40,12 +41,25 @@ Clean Architecture / DDD:
 
 ## Tests
 
-- 48 tests across 5 suites (as of initial refactoring)
-- `SnippetsLabWriterTests` — 6 tests
-- `SnippetsLabLibraryTests` — 12 tests
+- 48 tests across 5 suites
+- `NSKeyedArchiverSnippetWriterTests` — 6 tests
+- `BackupSnippetRepositoryTests` — 12 tests
 - `MCPToolHandlerTests` — 16 tests
 - `CodableRoundTripTests` — 7 tests
 - `ResourceHandlerTests` — 7 tests
+
+## Changes from the Grill (July 2026)
+
+The following improvements were made after a full repository audit:
+
+1. **Domain layer**: Removed `import Foundation` from all domain entities (`Snippet`, `Folder`, `Tag`, `SnippetRepository` protocol) — uses only Swift standard library types now
+2. **JSON DRY**: Extracted `encodeJSON<T>` helper — replaces 12 repetitive JSONEncoder blocks with a single function call
+3. **Consistent handler signatures**: All 6 tool handlers now accept `(repository: SnippetRepository, args: [String: Value])`
+4. **`CompositeSnippetRepository`** extracted to its own file (`Infrastructure/CompositeSnippetRepository.swift`)
+5. **Folder/tag validation**: `CompositeSnippetRepository.createSnippet()` validates that `folderUUID` and `tagUUIDs` exist in the library before delegating to the writer
+6. **Semantic error fix**: `BackupSnippetRepository.createSnippet()` now throws `.readOnly` instead of `.libraryNotFound`
+7. **README**: AI-generated content disclaimer, proper badges, SnippetsLab MCP confirmation, architecture diagram, corrected MCP client config example
+8. **CI/Release workflows**: Cleaned up (removed `opencode.json` references from release), proper macOS-only binary packaging
 
 ## Key Constraints
 

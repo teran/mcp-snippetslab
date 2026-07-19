@@ -9,56 +9,6 @@ import MCP
 /// The StdioTransport handles EPIPE errors gracefully.
 signal(SIGPIPE, SIG_IGN)
 
-// MARK: - Composite Repository
-
-internal final class CompositeSnippetRepository: SnippetRepository {
-    private let reader: BackupSnippetRepository
-    private let writer: NSKeyedArchiverSnippetWriter
-
-    init(reader: BackupSnippetRepository, writer: NSKeyedArchiverSnippetWriter) {
-        self.reader = reader
-        self.writer = writer
-    }
-
-    func readFolders() throws -> [Folder] {
-        try reader.readFolders()
-    }
-
-    func readTags() throws -> [Tag] {
-        try reader.readTags()
-    }
-
-    func readSnippetSummaries() throws -> [Snippet] {
-        try reader.readSnippetSummaries()
-    }
-
-    func readSnippet(uuid: String) throws -> Snippet {
-        try reader.readSnippet(uuid: uuid)
-    }
-
-    func searchSnippets(query: String) throws -> [Snippet] {
-        try reader.searchSnippets(query: query)
-    }
-
-    func createSnippet(
-        title: String,
-        content: String,
-        language: String?,
-        folderUUID: String?,
-        tagUUIDs: [String],
-        note: String?
-    ) throws -> String {
-        try writer.createSnippet(
-            title: title,
-            content: content,
-            language: language,
-            folderUUID: folderUUID,
-            tagUUIDs: tagUUIDs,
-            note: note
-        )
-    }
-}
-
 // MARK: - Composition Root
 
 let library = BackupSnippetRepository()

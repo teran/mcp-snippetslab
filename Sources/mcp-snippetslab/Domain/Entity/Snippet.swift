@@ -1,5 +1,3 @@
-import Foundation
-
 // MARK: - Snippet
 
 public struct Snippet: Codable, Sendable, Identifiable, Equatable {

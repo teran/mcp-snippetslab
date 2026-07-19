@@ -106,6 +106,15 @@ let allTools: [Tool] = [
     )
 ]
 
+// MARK: - JSON Encoding Helper
+
+private func encodeJSON<T: Encodable>(_ value: T) throws -> String {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    let data = try encoder.encode(value)
+    return String(data: data, encoding: .utf8) ?? "[]"
+}
+
 // MARK: - Tool Handlers
 
 func handleListSnippets(repository: SnippetRepository, args: [String: Value]) async throws -> CallTool.Result {
@@ -134,10 +143,7 @@ func handleListSnippets(repository: SnippetRepository, args: [String: Value]) as
     }
 
     let limited = Array(filtered.prefix(limit))
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    let json = try encoder.encode(limited)
-    let jsonStr = String(data: json, encoding: .utf8) ?? "[]"
+    let jsonStr = try encodeJSON(limited)
 
     return CallTool.Result(content: [
         .text(text: jsonStr, annotations: nil, _meta: nil)
@@ -150,10 +156,7 @@ func handleGetSnippet(repository: SnippetRepository, args: [String: Value]) asyn
     }
 
     let snippet = try repository.readSnippet(uuid: uuid)
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    let json = try encoder.encode(snippet)
-    let jsonStr = String(data: json, encoding: .utf8) ?? "{}"
+    let jsonStr = try encodeJSON(snippet)
 
     return CallTool.Result(content: [
         .text(text: jsonStr, annotations: nil, _meta: nil)
@@ -166,10 +169,7 @@ func handleSearchSnippets(repository: SnippetRepository, args: [String: Value]) 
     }
 
     let results = try repository.searchSnippets(query: query)
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    let json = try encoder.encode(results)
-    let jsonStr = String(data: json, encoding: .utf8) ?? "[]"
+    let jsonStr = try encodeJSON(results)
 
     return CallTool.Result(content: [
         .text(text: jsonStr, annotations: nil, _meta: nil)
@@ -216,34 +216,25 @@ func handleCreateSnippet(repository: SnippetRepository, args: [String: Value]) a
         "path": "snippetslab://snippets/\(uuid)"
     ]
 
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    let json = try encoder.encode(result)
-    let jsonStr = String(data: json, encoding: .utf8) ?? "{}"
+    let jsonStr = try encodeJSON(result)
 
     return CallTool.Result(content: [
         .text(text: jsonStr, annotations: nil, _meta: nil)
     ])
 }
 
-func handleListFolders(repository: SnippetRepository) async throws -> CallTool.Result {
+func handleListFolders(repository: SnippetRepository, args: [String: Value]) async throws -> CallTool.Result {
     let folders = try repository.readFolders()
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    let json = try encoder.encode(folders)
-    let jsonStr = String(data: json, encoding: .utf8) ?? "[]"
+    let jsonStr = try encodeJSON(folders)
 
     return CallTool.Result(content: [
         .text(text: jsonStr, annotations: nil, _meta: nil)
     ])
 }
 
-func handleListTags(repository: SnippetRepository) async throws -> CallTool.Result {
+func handleListTags(repository: SnippetRepository, args: [String: Value]) async throws -> CallTool.Result {
     let tags = try repository.readTags()
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    let json = try encoder.encode(tags)
-    let jsonStr = String(data: json, encoding: .utf8) ?? "[]"
+    let jsonStr = try encodeJSON(tags)
 
     return CallTool.Result(content: [
         .text(text: jsonStr, annotations: nil, _meta: nil)
@@ -278,10 +269,7 @@ public enum MCPServerConfiguration {
             if uri.hasPrefix("snippetslab://snippets/") {
                 let uuid = String(uri.dropFirst("snippetslab://snippets/".count))
                 let snippet = try repository.readSnippet(uuid: uuid)
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-                let json = try encoder.encode(snippet)
-                let jsonStr = String(data: json, encoding: .utf8) ?? "{}"
+                let jsonStr = try encodeJSON(snippet)
 
                 return .init(contents: [
                     .text(jsonStr, uri: uri, mimeType: "application/json", _meta: nil)
@@ -290,10 +278,7 @@ public enum MCPServerConfiguration {
 
             if uri == "snippetslab://snippets" {
                 let snippets = try repository.readSnippetSummaries()
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-                let json = try encoder.encode(snippets)
-                let jsonStr = String(data: json, encoding: .utf8) ?? "[]"
+                let jsonStr = try encodeJSON(snippets)
 
                 return .init(contents: [
                     .text(jsonStr, uri: uri, mimeType: "application/json", _meta: nil)
@@ -302,10 +287,7 @@ public enum MCPServerConfiguration {
 
             if uri == "snippetslab://folders" {
                 let folders = try repository.readFolders()
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-                let json = try encoder.encode(folders)
-                let jsonStr = String(data: json, encoding: .utf8) ?? "[]"
+                let jsonStr = try encodeJSON(folders)
 
                 return .init(contents: [
                     .text(jsonStr, uri: uri, mimeType: "application/json", _meta: nil)
@@ -314,10 +296,7 @@ public enum MCPServerConfiguration {
 
             if uri == "snippetslab://tags" {
                 let tags = try repository.readTags()
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-                let json = try encoder.encode(tags)
-                let jsonStr = String(data: json, encoding: .utf8) ?? "[]"
+                let jsonStr = try encodeJSON(tags)
 
                 return .init(contents: [
                     .text(jsonStr, uri: uri, mimeType: "application/json", _meta: nil)
@@ -343,9 +322,9 @@ public enum MCPServerConfiguration {
             case "create_snippet":
                 return try await handleCreateSnippet(repository: repository, args: args)
             case "list_folders":
-                return try await handleListFolders(repository: repository)
+                return try await handleListFolders(repository: repository, args: args)
             case "list_tags":
-                return try await handleListTags(repository: repository)
+                return try await handleListTags(repository: repository, args: args)
             default:
                 throw MCPError.invalidParams("Unknown tool: \(toolName)")
             }

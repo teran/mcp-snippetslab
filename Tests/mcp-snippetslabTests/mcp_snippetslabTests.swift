@@ -952,8 +952,6 @@ struct MCPToolHandlerTests {
                 "title": .string("Test Snippet"),
                 "content": .string("let x = 42"),
                 "language": .string("swift"),
-                "folder_uuid": .string("folder-1"),
-                "tag_uuids": .string("tag-1, tag-2"),
                 "note": .string("my note")
             ]
         )
@@ -986,7 +984,7 @@ struct MCPToolHandlerTests {
         )
         defer { cleanup() }
 
-        let result = try await handleListFolders(repository: repo)
+        let result = try await handleListFolders(repository: repo, args: [:])
 
         let text = try extractText(from: result)
         let folders = try JSONDecoder().decode([SnippetsLabFolderItem].self, from: try #require(text.data(using: .utf8)))
@@ -1002,7 +1000,7 @@ struct MCPToolHandlerTests {
         let (repo, cleanup) = createFixtureRepository()
         defer { cleanup() }
 
-        let result = try await handleListFolders(repository: repo)
+        let result = try await handleListFolders(repository: repo, args: [:])
 
         let text = try extractText(from: result)
         let data = try #require(text.data(using: .utf8))
@@ -1022,7 +1020,7 @@ struct MCPToolHandlerTests {
         )
         defer { cleanup() }
 
-        let result = try await handleListTags(repository: repo)
+        let result = try await handleListTags(repository: repo, args: [:])
 
         let text = try extractText(from: result)
         let tags = try JSONDecoder().decode([SnippetsLabTagItemJSON].self, from: try #require(text.data(using: .utf8)))
@@ -1037,7 +1035,7 @@ struct MCPToolHandlerTests {
         let (repo, cleanup) = createFixtureRepository()
         defer { cleanup() }
 
-        let result = try await handleListTags(repository: repo)
+        let result = try await handleListTags(repository: repo, args: [:])
 
         let text = try extractText(from: result)
         let data = try #require(text.data(using: .utf8))
@@ -1304,7 +1302,7 @@ struct ResourceHandlerTests {
             return ListResources.Result(resources: resources)
         }
 
-        let result = try handler(ListResources.Parameters())
+        let result = handler(ListResources.Parameters())
         #expect(result.resources.count == 1)
         #expect(result.resources.first?.uri == "snippetslab://snippets/s-1")
     }

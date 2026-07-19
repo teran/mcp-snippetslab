@@ -1,5 +1,3 @@
-import Foundation
-
 // MARK: - Repository Protocol
 
 public protocol SnippetRepository: Sendable {

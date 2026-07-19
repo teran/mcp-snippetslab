@@ -25,16 +25,15 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p dist
-          cp -R .build/release/mcp-snippetslab dist/
-          cp .build/release/mcp-snippetslab.dSYM dist/ 2>/dev/null || true
+          cp .build/release/mcp-snippetslab dist/
           cp README.md dist/
-          cp opencode.json dist/
+          cp SPEC.md dist/
 
       - name: Archive binary
         run: |
           cd dist
           zip -r mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip \
-            mcp-snippetslab README.md opencode.json
+            mcp-snippetslab README.md SPEC.md
 
       - name: Generate checksum
         run: |
@@ -52,10 +51,7 @@ jobs:
             See [CHANGELOG.md](CHANGELOG.md) for details.
 
             ## Installation
-            ```bash
-            # Or use the pre-built binary
-            # Add to opencode.json / MCP client config
-            ```
+            Download the binary for macOS from the assets below, extract, and configure in your MCP client.
           files: |
             dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip
             dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip.sha256
