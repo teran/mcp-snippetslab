@@ -54,41 +54,6 @@ let allTools: [Tool] = [
         ])
     ),
     Tool(
-        name: "create_snippet",
-        description: "Create a new snippet in the SnippetsLab library",
-        inputSchema: .object([
-            "type": .string("object"),
-            "properties": .object([
-                "title": .object([
-                    "type": .string("string"),
-                    "description": .string("Snippet title (required)")
-                ]),
-                "content": .object([
-                    "type": .string("string"),
-                    "description": .string("Snippet content / code (required)")
-                ]),
-                "language": .object([
-                    "type": .string("string"),
-                    "description": .string("Programming language (optional)")
-                ]),
-                "folder_uuid": .object([
-                    "type": .string("string"),
-                    "description": .string("Folder UUID (optional)")
-                ]),
-                "tag_uuids": .object([
-                    "type": .string("array"),
-                    "items": .object(["type": .string("string")]),
-                    "description": .string("Tag UUIDs (optional)")
-                ]),
-                "note": .object([
-                    "type": .string("string"),
-                    "description": .string("Optional note for the fragment")
-                ])
-            ]),
-            "required": .array([.string("title"), .string("content")])
-        ])
-    ),
-    Tool(
         name: "list_folders",
         description: "List all folders in the SnippetsLab library",
         inputSchema: .object([
@@ -170,53 +135,6 @@ func handleSearchSnippets(repository: SnippetRepository, args: [String: Value]) 
 
     let results = try repository.searchSnippets(query: query)
     let jsonStr = try encodeJSON(results)
-
-    return CallTool.Result(content: [
-        .text(text: jsonStr, annotations: nil, _meta: nil)
-    ])
-}
-
-func handleCreateSnippet(repository: SnippetRepository, args: [String: Value]) async throws -> CallTool.Result {
-    guard case .string(let title) = args["title"] else {
-        throw MCPError.invalidParams("Missing required argument: title")
-    }
-    guard case .string(let content) = args["content"] else {
-        throw MCPError.invalidParams("Missing required argument: content")
-    }
-
-    let language: String?
-    if case .string(let lang) = args["language"] { language = lang } else { language = nil }
-
-    let folderUUID: String?
-    if case .string(let f) = args["folder_uuid"] { folderUUID = f } else { folderUUID = nil }
-
-    let tagUUIDs: [String]
-    if case .array(let tags) = args["tag_uuids"] {
-        tagUUIDs = tags.compactMap { $0.stringValue }
-    } else {
-        tagUUIDs = []
-    }
-
-    let note: String?
-    if case .string(let n) = args["note"] { note = n } else { note = nil }
-
-    let uuid = try repository.createSnippet(
-        title: title,
-        content: content,
-        language: language,
-        folderUUID: folderUUID,
-        tagUUIDs: tagUUIDs,
-        note: note
-    )
-
-    let result: [String: String] = [
-        "uuid": uuid,
-        "title": title,
-        "status": "created",
-        "path": "snippetslab://snippets/\(uuid)"
-    ]
-
-    let jsonStr = try encodeJSON(result)
 
     return CallTool.Result(content: [
         .text(text: jsonStr, annotations: nil, _meta: nil)
@@ -319,8 +237,6 @@ public enum MCPServerConfiguration {
                 return try await handleGetSnippet(repository: repository, args: args)
             case "search_snippets":
                 return try await handleSearchSnippets(repository: repository, args: args)
-            case "create_snippet":
-                return try await handleCreateSnippet(repository: repository, args: args)
             case "list_folders":
                 return try await handleListFolders(repository: repository, args: args)
             case "list_tags":

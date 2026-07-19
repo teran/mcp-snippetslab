@@ -3,9 +3,9 @@
 <p align="center">
   <h1 align="center">mcp-snippetslab</h1>
   <p align="center">
-    <em>Read, search, and create code snippets in SnippetsLab from any AI assistant</em>
+    <em>Read-only access to your SnippetsLab library from any AI assistant</em>
     <br>
-    Built for macOS. Reads from automatic backups. Writes to the live iCloud library.
+    Built for macOS. Reads from automatic backups. Zero write risk.
   </p>
 </p>
 
@@ -44,8 +44,8 @@
 ## Key Features
 
 - **Read from backups** — parses SnippetsLab's automatically created backup files (`library.json`), always available with ~daily freshness
-- **Write to the live library** — creates new snippets as `NSKeyedArchiver` binary plists directly in the SnippetsLab iCloud library bundle; SnippetsLab picks them up automatically
-- **6 MCP tools** — list, search, get, and create snippets; list folders and tags
+- **Read-only** — the server only reads from SnippetsLab's automatic backups; no data is ever written to your library
+- **5 MCP tools** — list, search, and get snippets; list folders and tags
 - **4 MCP resources** — access snippets, folders, and tags via URI (`snippetslab://`)
 - **macOS only** — SnippetsLab runs on macOS (and iOS), and the iCloud library path is macOS-specific
 
@@ -56,7 +56,6 @@
 | `list_snippets` | List all snippets with optional folder/tag filters | — | `folder_uuid`, `tag_uuid`, `limit` |
 | `get_snippet` | Get full snippet content by UUID including all fragments | `uuid` | — |
 | `search_snippets` | Full-text search across snippet titles and content | `query` | — |
-| `create_snippet` | Create a new snippet in the SnippetsLab library | `title`, `content` | `language`, `folder_uuid`, `tag_uuids`, `note` |
 | `list_folders` | List all folders | — | — |
 | `list_tags` | List all tags | — | — |
 
@@ -73,7 +72,11 @@
 
 ### Reading (backup files)
 
-SnippetsLab automatically creates daily backups at:
+> **Prerequisite:** Automatic backups must be enabled in SnippetsLab.  
+> Go to _SnippetsLab → Settings → General → Backups_ and ensure _"Automatically back up library"_ is checked.  
+> The server will not find any data if backups are disabled.
+
+SnippetsLab automatically creates hourly backups at:
 
 ```
 ~/Library/Containers/com.renfei.SnippetsLab/Data/Library/Application Support/Backups/
@@ -82,18 +85,18 @@ SnippetsLab automatically creates daily backups at:
 
 The backup is pure JSON containing all snippets, folders, and tags inline. The server finds the latest backup directory (sorted by name) and parses `library.json`. Results are cached with a 60-second TTL.
 
-### Writing (live iCloud library)
+### Why not read from the live iCloud library?
 
 SnippetsLab stores its live data in an iCloud-synced bundle at:
 
 ```
 ~/Library/Mobile Documents/iCloud~com~renfei~SnippetsLab/
-  main.snippetslablibrary/Database/Snippets/<UUID>.data
+  main.snippetslablibrary/Database/
 ```
 
-Each `.data` file is an `NSKeyedArchiver` binary plist containing a dictionary with SnippetsLab's custom keys. The server constructs the same dictionary structure and writes it as a binary plist. SnippetsLab monitors this directory via `FSEvents` (macOS file system events) and picks up new snippets automatically.
+The live database uses custom Objective-C classes (`SLSnippet`, etc.) for its archived objects. These cannot be decoded by `NSKeyedUnarchiver` without the SnippetsLab app running — the archives fail with _"The data couldn't be read because it isn't in the correct format"_.
 
-> **Note:** SnippetsLab uses custom Objective-C classes (`SLSnippet`) for its archived objects. These cannot be decoded by `NSKeyedUnarchiver` without the SnippetsLab app running. The server sets `requiresSecureCoding = false` to work around this — for both reading the backup (fails gracefully) and writing new snippets.
+The backup `library.json` is the **only programmatically readable source** of all SnippetsLab data. SnippetsLab creates these backups automatically (~hourly), so the data is never more than a few hours stale.
 
 ## Architecture
 
@@ -111,11 +114,10 @@ Each `.data` file is an `NSKeyedArchiver` binary plist containing a dictionary w
 │  │         SnippetRepository (protocol - Domain)         │   │
 │  └──────────┬────────────────────────────────┬──────────┘   │
 │             ▼                                ▼              │
-│  ┌────────────────────┐      ┌──────────────────────────┐   │
-│  │BackupSnippetRepo   │      │CompositeSnippetRepo      │   │
-│  │(Infrastructure)    │      │  ├─ BackupSnippetRepo    │   │
-│  │                    │      │  └─ NSKeyedArchiverWriter│   │
-│  └────────────────────┘      └──────────────────────────┘   │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │          BackupSnippetRepository                    │   │
+│  │          (Infrastructure — reads backup library.json)│   │
+│  └────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -123,7 +125,7 @@ Clean Architecture / DDD layers:
 
 - **Domain** — `Snippet`, `Fragment`, `Folder`, `Tag` entities + `SnippetRepository` protocol (no Foundation dependencies)
 - **Application** — MCP handler registration (`MCPServerConfiguration`)
-- **Infrastructure** — `BackupSnippetRepository` (reads backup JSON), `NSKeyedArchiverSnippetWriter` (writes to iCloud), `CompositeSnippetRepository` (validates and delegates)
+- **Infrastructure** — `BackupSnippetRepository` (reads backup JSON)
 - **Composition Root** — `main.swift` wires everything together
 
 See [SPEC.md](SPEC.md) for the full specification.
@@ -162,7 +164,7 @@ Add to your MCP client configuration:
 ```bash
 swift build              # Build debug
 swift build -c release   # Build release (used by MCP clients)
-swift test               # Run tests (48+ tests, 5 suites)
+swift test               # Run tests (39+ tests, 4 suites)
 swiftlint --strict       # Lint (0 violations required)
 ```
 
@@ -184,7 +186,7 @@ Every push and pull request is checked by:
 | Gate | Status |
 |------|--------|
 | 🔍 SwiftLint (`--strict`) | ✅ Blocks PR |
-| 🧪 Swift Test (48+ tests) | ✅ Blocks PR |
+|  🧪 Swift Test (39+ tests) | ✅ Blocks PR |
 | 📦 Swift Build (release) | ✅ Blocks PR |
 
 ## License

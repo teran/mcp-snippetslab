@@ -113,7 +113,6 @@ public final class BackupSnippetRepository: SnippetRepository {
 
     public enum Error: Swift.Error, LocalizedError, Equatable {
         case libraryNotFound(String)
-        case readOnly(String)
         case decodeFailed(String)
         case notFound(String)
 
@@ -121,8 +120,6 @@ public final class BackupSnippetRepository: SnippetRepository {
             switch self {
             case .libraryNotFound(let path):
                 return "SnippetsLab library not found at: \(path)"
-            case .readOnly(let detail):
-                return "Read-only: \(detail)"
             case .decodeFailed(let detail):
                 return "Failed to decode SnippetsLab data: \(detail)"
             case .notFound(let detail):
@@ -247,14 +244,4 @@ public final class BackupSnippetRepository: SnippetRepository {
             .map { $0.toSnippet() }
     }
 
-    public func createSnippet(
-        title: String,
-        content: String,
-        language: String?,
-        folderUUID: String?,
-        tagUUIDs: [String],
-        note: String?
-    ) throws -> String {
-        throw Error.readOnly("createSnippet is not supported by BackupSnippetRepository (read-only)")
-    }
 }

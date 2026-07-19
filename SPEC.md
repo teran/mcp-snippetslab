@@ -18,25 +18,21 @@ Primary source: automatic backups created by SnippetsLab at:
 ~/Library/Containers/com.renfei.SnippetsLab/Data/Library/Application Support/Backups/
 <date>.snippetslab-backup/library.json
 ```
-- Pure JSON, always available, auto-created ~daily
+- Pure JSON, always available, auto-created ~hourly
 - Contains all snippets, folders, and tags inline
+- **Requirement:** Automatic backups must be enabled in SnippetsLab (_Settings → General → Backups_)
 
-### Writing (live iCloud library)
-Snippets are created as NSKeyedArchiver binary plist `.data` files directly in the iCloud library:
-```
-~/Library/Mobile Documents/iCloud~com~renfei~SnippetsLab/
-    main.snippetslablibrary/Database/Snippets/<UUID>.data
-```
-SnippetsLab monitors this directory and picks up new files automatically.
+> **Note:** The server is **read-only**. Writing to the live iCloud library was removed because
+> SnippetsLab uses custom ObjC classes (`SLSnippet`) and crashes when it encounters
+> plain `NSDictionary` archives written by external tools.
 
-## Tools (6)
+## Tools (5)
 
 | Tool | Description | Parameters |
 |---|---|---|
 | `list_snippets` | List snippets with optional filters | `folder_uuid`, `tag_uuid`, `limit` |
 | `get_snippet` | Full snippet by UUID | `uuid` (required) |
 | `search_snippets` | Full-text search (title + content) | `query` (required) |
-| `create_snippet` | Create a new snippet | `title`, `content` (required); `language`, `folder_uuid`, `tag_uuids`, `note` |
 | `list_folders` | List all folders | — |
 | `list_tags` | List all tags | — |
 
@@ -57,18 +53,20 @@ SnippetsLab monitors this directory and picks up new files automatically.
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │        MCPServerConfiguration (Application)           │   │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐  │   │
-│  │  │list_snip│ │get_snip │ │search    │ │create  │…│  │   │
-│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └───┬────┘  │   │
+│  │  │list_snip│ │get_snip │ │search    │ │list_   │  │   │
+│  │  │        │ │        │ │          │ │folders │  │   │
+│  │  │        │ │        │ │          │ │/tags   │  │   │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬───┘  │   │
 │  └───────┼────────────┼────────────┼────────────┼───────┘   │
 │          ▼            ▼            ▼            ▼           │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │         SnippetRepository (protocol - Domain)         │   │
-│  └──────────┬────────────────────────────────┬──────────┘   │
-│             ▼                                ▼              │
-│  ┌────────────────────┐      ┌──────────────────────────┐   │
-│  │BackupSnippetRepo   │      │NSKeyedArchiverWriter     │   │
-│  │(Infrastructure)    │      │(Infrastructure)          │   │
-│  └────────────────────┘      └──────────────────────────┘   │
+│  │              SnippetRepository (protocol)              │   │
+│  └──────────────────────────┬───────────────────────────┘   │
+│                             ▼                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │          BackupSnippetRepository                       │   │
+│  │          (Infrastructure — reads library.json)         │   │
+│  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 

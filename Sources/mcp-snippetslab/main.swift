@@ -11,17 +11,15 @@ signal(SIGPIPE, SIG_IGN)
 
 // MARK: - Composition Root
 
-let library = BackupSnippetRepository()
-let writer = NSKeyedArchiverSnippetWriter()
-let repository = CompositeSnippetRepository(reader: library, writer: writer)
+let repository = BackupSnippetRepository()
 
 let server = Server(
     name: "mcp-snippetslab",
     version: "1.0.0",
     title: "SnippetsLab MCP Server",
     instructions: """
-        Provides access to SnippetsLab code snippet library.
-        Supports searching, reading, and creating snippets.
+        Provides read-only access to SnippetsLab code snippet library.
+        Supports searching, reading snippets, and listing folders and tags.
 
         Snippets are organized into folders and can have tags and multiple fragments.
         Each fragment has content, language, and optional notes.
