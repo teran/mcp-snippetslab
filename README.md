@@ -22,7 +22,7 @@
   <a href="https://github.com/teran/mcp-snippetslab/releases">
     <img src="https://img.shields.io/github/v/release/teran/mcp-snippetslab?logo=github&label=release" alt="Latest Release">
   </a>
-  <a href="https://github.com/teran/mcp-snippetslab/blob/main/LICENSE">
+  <a href="https://github.com/teran/mcp-snippetslab/blob/master/LICENSE">
     <img src="https://img.shields.io/github/license/teran/mcp-snippetslab" alt="License">
   </a>
   <a href="https://github.com/teran/mcp-snippetslab">
