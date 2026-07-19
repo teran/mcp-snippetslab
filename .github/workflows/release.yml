@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Build & Release
+  build-x86_64:
+    name: Build (x86_64)
     runs-on: macos-15
 
     steps:
@@ -19,26 +19,73 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
-      - name: Build (release)
-        run: swift build -c release
+      - name: Build (x86_64)
+        run: swift build -c release --arch x86_64
 
-      - name: Prepare artifacts
+      - name: Package
         run: |
           mkdir -p dist
-          cp .build/release/mcp-snippetslab dist/
-          cp README.md dist/
-          cp SPEC.md dist/
-
-      - name: Archive binary
-        run: |
+          cp .build/release/mcp-snippetslab dist/mcp-snippetslab
+          cp README.md SPEC.md dist/
           cd dist
           zip -r mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip \
             mcp-snippetslab README.md SPEC.md
+          shasum -a 256 mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip \
+            > mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip.sha256
 
-      - name: Generate checksum
+      - uses: actions/upload-artifact@v7
+        with:
+          name: artifacts-x86_64
+          path: dist/
+          retention-days: 1
+
+  build-arm64:
+    name: Build (arm64)
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Build (arm64)
+        run: swift build -c release --arch arm64
+
+      - name: Package
         run: |
-          shasum -a 256 dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip \
-            > dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip.sha256
+          mkdir -p dist
+          cp .build/release/mcp-snippetslab dist/mcp-snippetslab
+          cp README.md SPEC.md dist/
+          cd dist
+          zip -r mcp-snippetslab-${{ github.ref_name }}-arm64-apple-macos.zip \
+            mcp-snippetslab README.md SPEC.md
+          shasum -a 256 mcp-snippetslab-${{ github.ref_name }}-arm64-apple-macos.zip \
+            > mcp-snippetslab-${{ github.ref_name }}-arm64-apple-macos.zip.sha256
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: artifacts-arm64
+          path: dist/
+          retention-days: 1
+
+  create-release:
+    name: Create Release
+    needs: [build-x86_64, build-arm64]
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+
+      - name: Collect assets
+        run: |
+          mkdir -p release-assets
+          find dist -name "*.zip" -exec cp {} release-assets/ \;
+          find dist -name "*.sha256" -exec cp {} release-assets/ \;
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
@@ -51,7 +98,5 @@ jobs:
             See [CHANGELOG.md](CHANGELOG.md) for details.
 
             ## Installation
-            Download the binary for macOS from the assets below, extract, and configure in your MCP client.
-          files: |
-            dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip
-            dist/mcp-snippetslab-${{ github.ref_name }}-x86_64-apple-macos.zip.sha256
+            Download the binary for your architecture from the assets below.
+          files: release-assets/*

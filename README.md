@@ -17,6 +17,9 @@
     <img src="https://img.shields.io/badge/swift-6.0-F05138?logo=swift" alt="Swift Version">
   </a>
   <a href="https://github.com/teran/mcp-snippetslab/releases">
+    <img src="https://img.shields.io/badge/macOS-x86__64%20%7C%20arm64-007AFF?logo=apple" alt="macOS Architectures">
+  </a>
+  <a href="https://github.com/teran/mcp-snippetslab/releases">
     <img src="https://img.shields.io/github/v/release/teran/mcp-snippetslab?logo=github&label=release" alt="Latest Release">
   </a>
   <a href="https://github.com/teran/mcp-snippetslab/blob/main/LICENSE">
