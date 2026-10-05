@@ -1062,18 +1062,121 @@ struct ResourceHandlerTests {
         #expect(tags.count == 1)
         #expect(tags.first?.title == "swift")
     }
+}
 
-    @Test("ReadResource with unknown URI throws")
-    func testReadResourceUnknownURI() throws {
-        #expect(throws: MCPError.invalidParams("Unknown resource URI: snippetslab://unknown")) {
-            throw MCPError.invalidParams("Unknown resource URI: snippetslab://unknown")
+// MARK: - Symlink Escape Tests (S04/N03)
+
+struct SymlinkEscapeTests {
+
+    @Test("Symlinked backup resolving outside backupsDir is rejected (S04)")
+    func testSymlinkEscapeRejected() throws {
+        let fm = FileManager.default
+        let tempDir = try makeTempDir()
+        defer { try? fm.removeItem(atPath: tempDir) }
+
+        // An external directory (outside backupsDir) holding a valid library.json.
+        let externalDir = fm.temporaryDirectory
+            .appendingPathComponent("mcp-snippetslab-ext-\(UUID().uuidString)")
+            .path
+        try fm.createDirectory(atPath: externalDir, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(atPath: externalDir) }
+
+        let lib = SnippetsLabLibraryJSON(
+            app: "SnippetsLab", name: "Lib", schema: "1.0", date: "2025-01-01",
+            contents: SnippetsLabContents(folders: [], tags: [], snippets: [], attachments: [])
+        )
+        let data = try JSONEncoder().encode(lib)
+        try data.write(to: URL(fileURLWithPath: "\(externalDir)/library.json"))
+
+        // A symlink that looks like a backup dir but resolves outside the scope.
+        try fm.createSymbolicLink(
+            atPath: "\(tempDir)/evil.snippetslab-backup",
+            withDestinationPath: externalDir
+        )
+
+        let repo = BackupSnippetRepository(backupsDir: tempDir, fileManager: fm)
+        #expect(throws: BackupSnippetRepository.Error.self) {
+            try repo.readSnippetSummaries()
+        }
+    }
+}
+
+// MARK: - Tool Registry Tests (M04/S03/S08/S09)
+
+struct ToolRegistryTests {
+
+    @Test("Tool registry exposes exactly the 5 read-only tools")
+    func testToolCountAndNames() {
+        let names = allTools.map(\.name).sorted()
+        #expect(names == ["get_snippet", "list_folders", "list_snippets", "list_tags", "search_snippets"])
+    }
+
+    @Test("Every tool is annotated read-only and non-destructive (S03/M04)")
+    func testAllToolsAreReadOnly() {
+        for tool in allTools {
+            #expect(tool.annotations.readOnlyHint == true, "\(tool.name) must be readOnlyHint")
+            #expect(tool.annotations.openWorldHint == false, "\(tool.name) must be closed-world")
+            #expect(tool.annotations.destructiveHint != true, "\(tool.name) must not be destructive")
         }
     }
 
-    @Test("CallTool with unknown name throws")
-    func testCallToolUnknownName() throws {
-        #expect(throws: MCPError.invalidParams("Unknown tool: nonexistent")) {
-            throw MCPError.invalidParams("Unknown tool: nonexistent")
+    @Test("Every tool declares an outputSchema (S09)")
+    func testAllToolsHaveOutputSchema() {
+        for tool in allTools {
+            #expect(tool.outputSchema != nil, "\(tool.name) must declare outputSchema")
         }
+    }
+
+    @Test("Every tool inputSchema forbids additional properties (S08)")
+    func testInputSchemasDisallowAdditionalProperties() throws {
+        for tool in allTools {
+            let object = try #require(tool.inputSchema.objectValue)
+            #expect(object["additionalProperties"]?.boolValue == false, "\(tool.name) must set additionalProperties:false")
+        }
+    }
+
+    @Test("get_snippet and search_snippets declare required params (S08)")
+    func testRequiredParamsDeclared() throws {
+        let getSchema = try #require(allTools.first(where: { $0.name == "get_snippet" })?.inputSchema.objectValue)
+        let getRequired = try #require(getSchema["required"]?.arrayValue)
+        #expect(getRequired.contains(.string("uuid")))
+
+        let searchSchema = try #require(allTools.first(where: { $0.name == "search_snippets" })?.inputSchema.objectValue)
+        let searchRequired = try #require(searchSchema["required"]?.arrayValue)
+        #expect(searchRequired.contains(.string("query")))
+    }
+
+    @Test("limit parameter is typed as bounded integer (S08)")
+    func testLimitIsBoundedInteger() throws {
+        let schema = try #require(allTools.first(where: { $0.name == "list_snippets" })?.inputSchema.objectValue)
+        let properties = try #require(schema["properties"]?.objectValue)
+        let limit = try #require(properties["limit"]?.objectValue)
+        #expect(limit["type"]?.stringValue == "integer")
+        #expect(limit["minimum"]?.intValue == 1)
+        #expect(limit["maximum"]?.intValue == 1000)
+    }
+}
+
+// MARK: - Output Sanitization Tests (S09/N23)
+
+struct OutputSanitizationTests {
+
+    @Test("sanitizeForText strips ANSI escape sequences")
+    func testStripsANSI() {
+        let input = "code \u{1B}[31mred\u{1B}[0m \u{1B}]0;title\u{07}"
+        let output = sanitizeForText(input)
+        #expect(output == "code red ")
+    }
+
+    @Test("sanitizeForText strips control characters but keeps newlines and tabs")
+    func testStripsControlKeepsWhitespace() {
+        let input = "line1\n\tline2\u{00}\u{07}end"
+        let output = sanitizeForText(input)
+        #expect(output == "line1\n\tline2end")
+    }
+
+    @Test("sanitizeForText preserves normal text")
+    func testPreservesNormalText() {
+        #expect(sanitizeForText("plain snippet text") == "plain snippet text")
     }
 }
