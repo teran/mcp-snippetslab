@@ -9,13 +9,28 @@ import MCP
 /// The StdioTransport handles EPIPE errors gracefully.
 signal(SIGPIPE, SIG_IGN)
 
+// MARK: - Logging (B05/L06, L01/L02)
+
+/// In stdio mode logging is enabled only when LOG_LEVEL is set (L02); logs go to a
+/// file (LOG_FILENAME), never stdout (L01). When disabled, `logger` is nil.
+let logger = Logger(environment: ProcessInfo.processInfo.environment)
+
+if let logger, logger.isEnabled {
+    logger.banner(
+        appName: BuildMetadata.appName,
+        version: BuildMetadata.appVersion,
+        commit: BuildMetadata.appCommit,
+        timestamp: BuildMetadata.appTimestamp
+    )
+}
+
 // MARK: - Composition Root
 
 let repository = BackupSnippetRepository()
 
 let server = Server(
-    name: "mcp-snippetslab",
-    version: "1.0.0",
+    name: BuildMetadata.appName,
+    version: BuildMetadata.appVersion,
     title: "SnippetsLab MCP Server",
     instructions: """
         Provides read-only access to SnippetsLab code snippet library.
@@ -24,7 +39,7 @@ let server = Server(
         Snippets are organized into folders and can have tags and multiple fragments.
         Each fragment has content, language, and optional notes.
 
-        Use snippetslab://snippets/<uuid> to reference individual snippets.
+        All tools are read-only. Use snippetslab://snippets/<uuid> to reference individual snippets.
         """,
     capabilities: Server.Capabilities(
         resources: .init(listChanged: true),
@@ -32,7 +47,7 @@ let server = Server(
     )
 )
 
-await MCPServerConfiguration.configure(server: server, repository: repository)
+await MCPServerConfiguration.configure(server: server, repository: repository, logger: logger)
 
 // Start the server
 try await server.start(transport: StdioTransport())
