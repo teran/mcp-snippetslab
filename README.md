@@ -38,15 +38,15 @@
 
 # mcp-snippetslab
 
-**MCP server for [SnippetsLab](https://www.renfei.org/snippets-lab/)** — connects AI assistants to your personal code snippet library via the [Model Context Protocol](https://modelcontextprotocol.io/). Search across hundreds of snippets, browse by folder or tag, read full content with syntax highlighting info, and create new snippets — all from your AI assistant.
+**MCP server for [SnippetsLab](https://www.renfei.org/snippets-lab/)** — connects AI assistants to your personal code snippet library via the [Model Context Protocol](https://modelcontextprotocol.io/). Search across hundreds of snippets, browse by folder or tag, and read full content with syntax highlighting info — all from your AI assistant.
 
 [**SnippetsLab**](https://www.renfei.org/snippets-lab/) (by Renfei Song) is a full-featured snippet manager and note‑taking app for developers on macOS and iOS. It supports syntax highlighting for 600+ languages, Markdown with Mermaid diagrams and LaTeX, iCloud sync, and automatic backups.
 
-> **Does SnippetsLab have built-in MCP support?** No. SnippetsLab does not expose a Model Context Protocol interface as of version 2.6.4 (February 2026). This server bridges that gap by reading from SnippetsLab's automatic backup files and writing directly to its iCloud library.
+> **Does SnippetsLab have built-in MCP support?** No. SnippetsLab does not expose a Model Context Protocol interface as of version 2.6.4 (February 2026). This server bridges that gap by reading from SnippetsLab's automatic backup files.
 
 ## Key Features
 
-- **Read from backups** — parses SnippetsLab's automatically created backup files (`library.json`), always available with ~daily freshness
+- **Read from backups** — parses SnippetsLab's automatically created backup files (`library.json`), always available with ~hourly freshness
 - **Read-only** — the server only reads from SnippetsLab's automatic backups; no data is ever written to your library
 - **5 MCP tools** — list, search, and get snippets; list folders and tags
 - **4 MCP resources** — access snippets, folders, and tags via URI (`snippetslab://`)
@@ -71,7 +71,7 @@
 | `snippetslab://folders` | All folders (JSON array) |
 | `snippetslab://tags` | All tags (JSON array) |
 
-## How It Reads & Writes SnippetsLab Data
+## How It Reads SnippetsLab Data
 
 ### Reading (backup files)
 
@@ -109,8 +109,9 @@ The backup `library.json` is the **only programmatically readable source** of al
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │        MCPServerConfiguration (Application)           │   │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐  │   │
-│  │  │list_snip│ │get_snip │ │search    │ │create  │…│  │   │
-│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └───┬────┘  │   │
+│  │  │list_snip│ │get_snip │ │search    │ │list_fol│  │   │
+│  │  │        │ │        │ │          │ │/tags   │  │   │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬───┘  │   │
 │  └───────┼────────────┼────────────┼────────────┼───────┘   │
 │          ▼            ▼            ▼            ▼           │
 │  ┌──────────────────────────────────────────────────────┐   │
@@ -127,7 +128,7 @@ The backup `library.json` is the **only programmatically readable source** of al
 Clean Architecture / DDD layers:
 
 - **Domain** — `Snippet`, `Fragment`, `Folder`, `Tag` entities + `SnippetRepository` protocol (no Foundation dependencies)
-- **Application** — MCP handler registration (`MCPServerConfiguration`)
+- **Application** — MCP handler registration (`MCPServerConfiguration`) + logging (`Logger`)
 - **Infrastructure** — `BackupSnippetRepository` (reads backup JSON)
 - **Composition Root** — `main.swift` wires everything together
 
@@ -137,7 +138,7 @@ See [SPEC.md](SPEC.md) for the full specification.
 
 - macOS 15+ (for Swift 6 language features and Swift Testing framework)
 - Swift 6.0+ (included with Xcode 16+)
-- [SnippetsLab](https://www.renfei.org/snippets-lab/) with a library at the default iCloud path (for reading backups and writing new snippets)
+- [SnippetsLab](https://www.renfei.org/snippets-lab/) with automatic backups enabled (the server reads the latest `library.json` backup)
 
 ## Quick Start
 
@@ -145,7 +146,7 @@ See [SPEC.md](SPEC.md) for the full specification.
 # Clone and build
 git clone https://github.com/teran/mcp-snippetslab.git
 cd mcp-snippetslab
-swift build -c release
+make build            # swift build -c release
 ```
 
 Add to your MCP client configuration:
@@ -164,12 +165,29 @@ Add to your MCP client configuration:
 
 ## Build & Development
 
+The server exposes a standard build-system interface via `make` (R07):
+
 ```bash
-swift build              # Build debug
-swift build -c release   # Build release (used by MCP clients)
-swift test               # Run tests (39+ tests, 4 suites)
-swiftlint --strict       # Lint (0 violations required)
+make lint              # swiftlint --strict (0 violations required)
+make test              # swift test
+make build             # swift build -c release
+make coverage          # coverage gate (>= 95%)
+make mutation          # mutation testing (muter)
+make secret-scan       # gitleaks
+make thread-sanitize   # swift test --sanitize=thread
 ```
+
+### Logging
+
+The server is a Local stdio tool, so by default logging is **disabled** (stdout is
+reserved for the MCP transport). Set `LOG_LEVEL` to enable it and log to a file:
+
+```bash
+LOG_LEVEL=info LOG_FILENAME=/tmp/mcp-snippetslab.log ./.build/release/mcp-snippetslab
+```
+
+`LOG_FORMAT=json` switches to JSON records. When enabled, a startup banner and a
+per-request access log (`tool`, `source`, `duration`, `outcome`, `request_id`) are written.
 
 ## Release
 
@@ -184,13 +202,18 @@ The CI pipeline will build a release binary on `macos-15` and publish it as a Gi
 
 ## CI Pipeline
 
-Every push and pull request is checked by:
+Every push and pull request is checked by these hard gates (bound to `make` targets):
 
 | Gate | Status |
 |------|--------|
-| 🔍 SwiftLint (`--strict`) | ✅ Blocks PR |
-|  🧪 Swift Test (39+ tests) | ✅ Blocks PR |
-| 📦 Swift Build (release) | ✅ Blocks PR |
+| 🔍 SwiftLint (`--strict`) | ✅ Blocks |
+| 🧪 Swift Test | ✅ Blocks |
+| 📊 Coverage (≥ 95%) | ✅ Blocks |
+| 🧬 Mutation testing (muter) | ✅ Blocks |
+| 🕸 Thread Sanitizer | ✅ Blocks |
+| 🛡 Secret scan (gitleaks) | ✅ Blocks |
+| 📦 Dependency audit (osv-scanner) | ✅ Blocks |
+| 📦 Swift Build (release) | ✅ Blocks |
 
 ## License
 
