@@ -155,7 +155,17 @@ public final class BackupSnippetRepository: SnippetRepository {
 
     // MARK: - Backup-based reading
 
-    /// Find the latest backup's library.json path
+    /// Resolve symlinks in a path and return the canonicalized absolute path.
+    /// Used by S04 to ensure the resolved file stays inside the allowed backups dir.
+    private func canonicalize(_ path: String) -> String {
+        URL(fileURLWithPath: path)
+            .resolvingSymlinksInPath()
+            .standardizedFileURL
+            .path
+    }
+
+    /// Find the latest backup's library.json path, canonicalized and verified to stay
+    /// within `backupsDir` (S04/N03 defense-in-depth against symlink escape).
     private func latestLibraryPath() throws -> String {
         let contents = try fileManager.contentsOfDirectory(atPath: backupsDir)
         let backupDirs = contents.filter { $0.hasSuffix(".snippetslab-backup") }
@@ -165,7 +175,16 @@ public final class BackupSnippetRepository: SnippetRepository {
             throw Error.libraryNotFound("No backups found in \(backupsDir)")
         }
 
-        return "\(backupsDir)/\(latest)/library.json"
+        let candidate = "\(backupsDir)/\(latest)/library.json"
+        let resolved = canonicalize(candidate)
+        let allowedRoot = canonicalize(backupsDir)
+
+        // Verify the resolved path is within the allowed backups root.
+        let prefix = allowedRoot.hasSuffix("/") ? allowedRoot : allowedRoot + "/"
+        guard resolved.hasPrefix(prefix) else {
+            throw Error.libraryNotFound("Resolved backup path escapes allowed scope: \(resolved)")
+        }
+        return resolved
     }
 
     /// Read the full library from the latest backup (uses cache)
